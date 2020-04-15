@@ -1,18 +1,16 @@
 package zio.drawing.graphviz
 
 import org.scalatest.PropSpec
-import zio.DefaultRuntime
 import zio.drawing.graphviz.Graphviz._
 
 class Tests extends PropSpec {
+  val rts = zio.Runtime.default
   property("test") {
-    val rts = new DefaultRuntime {}
-    println(rts.unsafeRunSync(Graphviz.version))
+    println(rts.unsafeRun(Graphviz.version))
   }
 
   property("test run") {
-    val rts = new DefaultRuntime {}
-    println(rts.unsafeRunSync(
+    println(rts.unsafeRun(
       Graphviz.run(
         "digraph G { a -> b; b -> c }",
         Engine.Neato(

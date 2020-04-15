@@ -2,6 +2,8 @@ package zio.drawing.graphviz
 
 import java.io.{ByteArrayOutputStream, File, FileInputStream, FileOutputStream, IOException, InputStream}
 
+import zio.blocking.Blocking
+import zio.process.Command
 import zio.{Chunk, Task, ZIO}
 
 object Graphviz {
@@ -13,27 +15,25 @@ object Graphviz {
     final case object PNG extends OutputFormat[Chunk[Byte]]("png", Internal.readBinaryFile)
   }
 
-  sealed trait StartLocations
+  sealed trait StartLocations extends Product with Serializable
   object StartLocations {
     final case object Random extends StartLocations
     final case class Seeded(seed: Int) extends StartLocations
   }
 
   sealed abstract class Engine(val name: String) {
-    def args: List[String]
+    def args: List[String] = Nil
   }
   object Engine {
     // https://www.graphviz.org/pdf/dotguide.pdf
-    final case class Dot() extends Engine("dot") {
-      val args: List[String] = Nil
-    }
+    final case object Dot extends Engine("dot")
 
     // https://www.graphviz.org/pdf/neatoguide.pdf
     final case class Neato
     (start: Option[StartLocations] = None,
      epsilon: Option[Double] = None,
      maxIterations: Option[Int] = None) extends Engine("neato") {
-      val args: List[String] =
+      override val args: List[String] =
         (start match {
           case None => Nil
           case Some(StartLocations.Random) => List("-Gstart=rand")
@@ -47,28 +47,16 @@ object Graphviz {
         })
     }
 
-    final case class TwoPi() extends Engine("twopi") {
-      val args: List[String] = Nil
-    }
-    final case class Circo() extends Engine("circo") {
-      val args: List[String] = Nil
-    }
-    final case class Fdp() extends Engine("fdp") {
-      val args: List[String] = Nil
-    }
-    final case class Sfdp() extends Engine("sfdp") {
-      val args: List[String] = Nil
-    }
+    final case object TwoPi extends Engine("twopi")
+    final case object Circo extends Engine("circo")
+    final case object Fdp   extends Engine("fdp")
+    final case object Sfdp  extends Engine("sfdp")
 
     // https://www.graphviz.org/pdf/patchwork.1.pdf
-    final case class Patchwork() extends Engine("patchwork") {
-      val args: List[String] = Nil
-    }
+    final case object Patchwork extends Engine("patchwork")
 
     // https://www.graphviz.org/pdf/osage.1.pdf
-    final case class Osage() extends Engine("osage") {
-      val args: List[String] = Nil
-    }
+    final case object Osage extends Engine("osage")
   }
 
   object Internal {
@@ -82,14 +70,8 @@ object Graphviz {
       )(f => Task.effectTotal(f.delete()))(a)
     }
 
-    def runProcess(name: String, args: List[String]): ZIO[Any, Nothing, Int] = {
-      // We consider process creation / run errors as fatal.
-      ZIO.effectTotal {
-        val pb = new ProcessBuilder(name :: args: _*)
-        val p: Process = pb.start()
-        p.waitFor()
-      }
-    }
+    def runProcess(name: String, args: List[String]): ZIO[Blocking, Nothing, Int] =
+      Command(name, args :_*).exitCode.orDie
 
     lazy val DotPath = "dot"
 
@@ -144,7 +126,7 @@ object Graphviz {
 
   import Internal._
 
-  def run[R](text: String, engine: Engine, out: OutputFormat[R]): ZIO[Any, Nothing, R] = {
+  def run[R](text: String, engine: Engine, out: OutputFormat[R]): ZIO[Blocking, Nothing, R] = {
     withTempFile { fin =>
       withTempFile { fout =>
         val args = engine.args ++ List(

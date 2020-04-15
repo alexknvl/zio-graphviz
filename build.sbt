@@ -10,5 +10,6 @@ autoAPIMappings in ThisBuild := true
 
 libraryDependencies ++= List(
   Dependencies.zio,
+  Dependencies.zioProcess,
   Dependencies.scalatest  % Test,
   Dependencies.scalacheck % Test)
