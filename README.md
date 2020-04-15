@@ -6,7 +6,7 @@ Simple Graphviz API for ZIO.
 
 ```sbtshell
 resolvers += Resolver.bintrayRepo("alexknvl", "maven")
-libraryDependencies += "com.alexknvl"  %%  "zio-graphviz" % "0.1.0"
+libraryDependencies += "com.alexknvl"  %%  "zio-graphviz" % "0.2.0"
 // Currently available only for Scala 2.12 and 2.13
 ```
 
@@ -15,7 +15,7 @@ import zio.ZIO
 import zio.drawing.graphviz.Graphviz
 import zio.drawing.graphviz.Graphviz.{ Engine, OutputFormat, StartLocations }
 
-val r1: ZIO[Any, Nothing, String] = 
+val r1: ZIO[Blocking, Nothing, String] = 
   Graphviz.run(
     "digraph G { a -> b; b -> c }",
     Engine.Neato(
